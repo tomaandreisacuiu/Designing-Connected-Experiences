@@ -4,6 +4,11 @@
 const char* ssid = "iotroam";
 const char* password = "FoaQOCFMAe";
 
+const int toggleSwitchPin = 18;
+int lastSwitchState = -1;   
+
+int lastAnalogValue = -1;
+
 OOCSI oocsi = OOCSI();
 
 void setup() {
@@ -24,26 +29,44 @@ void setup() {
 }
 
 void loop() {
-//  Serial.println("Hello, World!"); 
-//  delay(1000); 
-
-//  Serial.print("ESP Board MAC Address:  ");
-//  Serial.println(WiFi.macAddress());
   oocsi.check();
-   
-  oocsi.newMessage("receiverESP32_toma");
-  oocsi.addString("toma_key", "receiving from sender senderESP32_toma");
-  oocsi.sendMessage();
-    
-  Serial.println("Message sent");
 
-  delay(5000);
+  int switchState = digitalRead(toggleSwitchPin);
+
+  if (switchState != lastSwitchState) {
+   
+    oocsi.newMessage("receiverESP32_toma"); 
+    oocsi.addInt("toma_key", switchState);
+    oocsi.sendMessage();
+    
+    lastSwitchState = switchState;
+
+    Serial.print("Sent switch state: ");
+    Serial.println(switchState);
+  }
+
+  int analogValue = analogRead(6); 
+
+  if (analogValue != lastAnalogValue) {
+    Serial.print("Analog: ");
+    Serial.print(analogValue);
+    
+    oocsi.newMessage("receiverESP32_toma"); 
+    oocsi.addInt("toma_key", analogValue);
+    oocsi.sendMessage();
+
+    Serial.print("Sent potentiometer value: ");
+    Serial.println(analogValue);
+
+    lastAnalogValue = analogValue;
+  }
+
+  delay(50);
 }
 
 void processOOCSI() {
   // Processing incoming data
    String svalue = oocsi.getString("toma_key", "-200");
-
    Serial.println("Received message: " + svalue);
 }
 
