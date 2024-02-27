@@ -1,8 +1,8 @@
 #include "WiFi.h"
 #include "OOCSI.h"
 
-const char* ssid = "TP-Link_6052";   
-const char* password = "tomitza2022"; 
+const char* ssid = "iotroam";
+const char* password = "FoaQOCFMAe";
 
 OOCSI oocsi = OOCSI();
 
@@ -26,16 +26,24 @@ void setup() {
 void loop() {
 //  Serial.println("Hello, World!"); 
 //  delay(1000); 
+
+//  Serial.print("ESP Board MAC Address:  ");
+//  Serial.println(WiFi.macAddress());
+  oocsi.check();
    
   oocsi.newMessage("receiverESP32_toma");
   oocsi.addString("toma_key", "receiving from sender senderESP32_toma");
   oocsi.sendMessage();
     
   Serial.println("Message sent");
-  
+
   delay(5000);
 }
 
 void processOOCSI() {
   // Processing incoming data
+   String svalue = oocsi.getString("toma_key", "-200");
+
+   Serial.println("Received message: " + svalue);
 }
+
