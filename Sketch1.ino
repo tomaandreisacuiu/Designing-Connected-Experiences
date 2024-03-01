@@ -8,8 +8,16 @@ const int toggleSwitchPin = 18;
 int lastSwitchState = -1;   
 
 int lastAnalogValue = -1;
+int lastPotInterval = -1;
 
 OOCSI oocsi = OOCSI();
+
+struct songChoice {
+  int actualValue;
+  int startValue;
+  int endValue;
+  int song; // 1, 2, 3, 4
+};
 
 void setup() {
   Serial.begin(115200); 
@@ -36,7 +44,7 @@ void loop() {
   if (switchState != lastSwitchState) {
    
     oocsi.newMessage("receiverESP32_toma"); 
-    oocsi.addInt("toma_key", switchState);
+    oocsi.addInt("toggle_Switch_group8", switchState);
     oocsi.sendMessage();
     
     lastSwitchState = switchState;
@@ -45,20 +53,22 @@ void loop() {
     Serial.println(switchState);
   }
 
-  int analogValue = analogRead(6); 
+  int analogValue = analogRead(6);
+//  Serial.print("actual pot value: ");
+//  Serial.println(analogValue);
+  int currentPotInterval = map(analogValue, 0, 4095, 0, 3); 
 
-  if (analogValue != lastAnalogValue) {
-    Serial.print("Analog: ");
-    Serial.print(analogValue);
-    
-    oocsi.newMessage("receiverESP32_toma"); 
-    oocsi.addInt("toma_key", analogValue);
-    oocsi.sendMessage();
+  if (currentPotInterval != lastPotInterval) {    
+//    oocsi.newMessage("receiverESP32_toma");
+//    oocsi.addInt("potentiometer_group8", currentPotInterval);
+//    oocsi.sendMessage();
 
-    Serial.print("Sent potentiometer value: ");
-    Serial.println(analogValue);
+    // play song of index currentPotInterval
 
-    lastAnalogValue = analogValue;
+    Serial.print("Sent potentiometer interval: ");
+    Serial.println(currentPotInterval);
+
+    lastPotInterval = currentPotInterval; // Update the last interval
   }
 
   delay(50);
@@ -66,7 +76,6 @@ void loop() {
 
 void processOOCSI() {
   // Processing incoming data
-   String svalue = oocsi.getString("toma_key", "-200");
-   Serial.println("Received message: " + svalue);
+//   String svalue = oocsi.getString("toma_key", "-200");
+//   Serial.println("Received message: " + svalue);
 }
-
