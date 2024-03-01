@@ -42,7 +42,7 @@ void loop() {
 }
 
 void processOOCSI() {
-  int ivalue = oocsi.getInt("toma_key", 0);
+  int ivalue = oocsi.getInt("toggle_Switch_group8", 0);
 
   if (ivalue == 0 ) {
     digitalWrite (ledPin, LOW);
@@ -53,8 +53,7 @@ void processOOCSI() {
   Serial.print("switch state is: ");
   Serial.println(ivalue);
 
-  int potentiometerValue = oocsi.getInt("toma_key", -1);
-  Serial.print("potentiometer value is: ");
+  int potentiometerValue = oocsi.getInt("potentiometer_group8", -1);
+  Serial.print("potentiometer interval is: ");
   Serial.println(potentiometerValue);
 }
-
