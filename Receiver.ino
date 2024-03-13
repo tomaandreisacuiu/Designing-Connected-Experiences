@@ -11,14 +11,14 @@
 // Button Pin
 
 // Network variables
-const char* ssid = "iotroam";
-const char* password = "FoaQOCFMAe";
+const char* ssid = "Parapet_Cafe";
+const char* password = "bananaMiau206";
 
 OOCSI oocsi = OOCSI();
 
 //Toggle switch variables
 const int toggleSwitchPin = 6;
-int lastSwitchState = 0;   
+int lastSwitchState = -1;   
 int switchState = 1;
 
 // Send button variables
@@ -67,20 +67,26 @@ void setup() {
 
   pinMode(buttonPin, INPUT_PULLUP);
   pinMode(toggleSwitchPin, INPUT_PULLUP);
-  pinMode(0, OUTPUT);
+  pinMode(ledPin, OUTPUT);
   pinMode(17, OUTPUT);
-  // // SD card mounting
-  // SPI.begin(12, 13, 11, 10);
-  // if (!SD.begin(10, SPI)) {
-  //   Serial.println("Card Mount Failed");
-  //   return;
-  // }
-  // uint8_t cardType = SD.cardType();
+  // Set LED to off at start.
+  digitalWrite(ledPin, LOW);
+  // SD card mounting
+  /*SPI.begin(12, 13, 11, 10);
+  if (!SD.begin(10, SPI)) {
+    Serial.println("Card Mount Failed");
+    return;
+  }
+  else
+  {
+    Serial.printf("Mount Successful");
+  }
+  uint8_t cardType = SD.cardType();
 
-  // if(cardType == CARD_NONE){
-  //   Serial.println("No SD card attached");
-  //   return;
-  // }
+  if(cardType == CARD_NONE){
+    Serial.println("No SD card attached");
+    return;
+  }*/
 
 }
 
@@ -96,7 +102,7 @@ void loop() {
     oocsi.addInt("toggle_Switch_2", switchState);
     oocsi.sendMessage();
 
-    if(lastSwitchState == 1 && switchState == 0)
+    if(lastSwitchState == 1 && switchState == 0 && digitalRead(ledPin)== HIGH)
     {
       playSong(lastSongFetched);
       lastSongFetched = -1;
@@ -134,11 +140,15 @@ void processOOCSI() {
   Serial.println(potentiometerValue);
 
   if (switchState && potentiometerValue != -1) {
-    digitalWrite (0, HIGH);
-    Serial.println("Led is HIGH");
-  } else{
-    digitalWrite (0, LOW); 
-    Serial.println("Led is LOW");
+    digitalWrite (ledPin, HIGH);
+    Serial.println("Led is ON");
+  } else if(switchState == 0)
+  {
+    playSong(lastSongFetched);
+    lastSongFetched = -1;
+  } else {
+   digitalWrite (ledPin, LOW); 
+   Serial.println("Led is OFF");
   }
 }
 
@@ -163,5 +173,5 @@ void playSong(int song)
     delay(500); // Wait for 0.5 seconds before the next play
   }
 
-  digitalWrite(0, LOW);
+  digitalWrite(ledPin, LOW);
 }
