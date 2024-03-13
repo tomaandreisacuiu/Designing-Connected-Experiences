@@ -10,8 +10,8 @@
 
 
 // Network variables
-const char* ssid = "iotroam";
-const char* password = "FoaQOCFMAe";
+const char* ssid = "Parapet_Cafe";
+const char* password = "bananaMiau206";
 
 OOCSI oocsi = OOCSI();
 
@@ -99,16 +99,19 @@ void loop() {
   }
   // Sending the potentiometer value
   int analogValue = analogRead(potPin); 
-  int potInterval = map(analogValue, 0, 8191, 0, 4);
+  int potInterval = map(analogValue, 0, 8191, 1, 3);
 
   bool reading = digitalRead(buttonPin);
 
-  if (digitalRead(buttonPin) == HIGH) {
+  if (digitalRead(buttonPin) == LOW) {
     // Button is pressed
     Serial.println("Button pressed!");
     // Debounce delay
-    delay(50);
-
+    delay(50);    
+    // Wait for the button to be released
+    while(digitalRead(buttonPin) == LOW) {
+      // Do nothing here until the button is released
+    }
     //Sending the new mood
     oocsi.newMessage("receiverESP32_toma");
     oocsi.addInt("potentiometer_1", potInterval);
@@ -116,10 +119,6 @@ void loop() {
 
     Serial.print("Sent potentiometer interval on button press: ");
     Serial.println(potInterval);
-    // Wait for the button to be released
-    while(digitalRead(buttonPin) == HIGH) {
-      // Do nothing here until the button is released
-    }
     Serial.println("Button released!");
   }
 
@@ -129,13 +128,13 @@ void loop() {
 void processOOCSI() {
   // Processing incoming data
   int ivalue = oocsi.getInt("toggle_Switch_2", -1);
-  if (ivalue == 1) {
-    digitalWrite (0, LOW);
-    Serial.println("Led is LOW");
-  } else {
-    digitalWrite (0, HIGH); 
-    Serial.println("Led is HIGH");
-  }
+  // if (ivalue == 1) {
+  //   digitalWrite (0, LOW);
+  //   Serial.println("Led is LOW");
+  // } else {
+  //   digitalWrite (0, HIGH); 
+  //   Serial.println("Led is HIGH");
+  // }
 
   
 
