@@ -1,26 +1,31 @@
 #include "WiFi.h"
 #include "OOCSI.h"
-//#include "Audio.h"
 #include "FS.h"
 #include "SD.h"
 #include "SPI.h"
+// Audio libraries that were tried during development 
+//#include "Audio.h"
 //#include <AudioGeneratorMP3.h>
 //#include <AudioFileSourceSD.h>
 //#include <AudioOutputI2S.h>
 
+// SENDER CODE
 
-// Network variables
+// LED pin
+const int ledPin = 0;
+
+// Network constants
 const char* ssid = "Parapet_Cafe";
 const char* password = "bananaMiau206";
 
 OOCSI oocsi = OOCSI();
 
-//Toggle switch variables
+//Toggle switch variables and constants
 const int toggleSwitchPin = 13;
 int lastSwitchState = -1;   
 int switchState = 1;
 
-// Send button variables
+// "Send" button constants and variables
 const int buttonPin = 2; // GPIO pin for the button
 bool lastButtonState = HIGH; // Initial state for input pullup
 unsigned long lastDebounceTime = 0;
@@ -38,15 +43,11 @@ int lastPotInterval = -1;
 
 int lastSongFetched = -1;
 
-// LED pin
-const int ledPin = 0;
-
 void setup() {
   Serial.begin(115200); 
   pinMode(14, INPUT_PULLUP);
   
-  // Connecting to the OOCSI network
-
+  // BEGIN WiFi Connection
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
@@ -54,12 +55,14 @@ void setup() {
   }
 
   Serial.println("Connected to WiFi");
+  // END - WiFI Connection setup done (if successful, otherwise keeps trying)
 
+  // BEGIN OOCSI Connection
   oocsi.connect("senderESP32_toma", "oocsi.id.tue.nl", "ssid", "password", processOOCSI);
-
   Serial.println("Connected to OOCSI");
+  // END - Connected to OOCSI successfully
 
-  // // SD card mounting
+  // Mounting of SD Card (tried during development)
   // SPI.begin(12, 13, 11, 10);
   // if (!SD.begin(10, SPI)) {
   //   Serial.println("Card Mount Failed");
@@ -72,47 +75,54 @@ void setup() {
   //   return;
   // }
 
-  // Button set up
+  /*
+  Sets up: two pins as pull-up input(button and toggle switch),
+  and one as output (LED)
+  */
   pinMode(buttonPin, INPUT_PULLUP);
   pinMode(toggleSwitchPin, INPUT_PULLUP);
-  pinMode(0, OUTPUT);
-  // Toggle switch 
+  pinMode(ledPin, OUTPUT);
 
+  // Toggle switch - for bi-directional communication
 }
 
 void loop() {
   oocsi.check();
 
-  // Send availability for the receiver's LED
-  switchState = digitalRead(toggleSwitchPin);
+  // Same as for the receiver - for future bi-directional communication
+  // switchState = digitalRead(toggleSwitchPin);
 
+  // If the switch state has changed, it sends it to the receiver
+  // Also relevant for the a possible bi-directionality
   if (switchState != lastSwitchState) {
-   
     oocsi.newMessage("receiverESP32_toma"); 
     oocsi.addInt("toggle_Switch_1", switchState);
     oocsi.sendMessage();
     
     lastSwitchState = switchState;
 
-    // Serial.print("Sent switch state: ");
-    // Serial.println(switchState);
+    Serial.print("Sent switch state: ");
+    Serial.println(switchState);
   }
-  // Sending the potentiometer value
+
+  // Sending the potentiometer value to the receiver
   int analogValue = analogRead(potPin); 
   int potInterval = map(analogValue, 0, 8191, 1, 3);
 
+  // Gets the state of the button with digital reading
   bool reading = digitalRead(buttonPin);
 
   if (digitalRead(buttonPin) == LOW) {
     // Button is pressed
     Serial.println("Button pressed!");
-    // Debounce delay
+    // Some debounce delay
     delay(50);    
-    // Wait for the button to be released
+    // Waiting for the button to be released
     while(digitalRead(buttonPin) == LOW) {
-      // Do nothing here until the button is released
+      // It just waits, does nothing else.
     }
-    //Sending the new mood
+
+    // Sends the new potentiomerer value (the new mood)
     oocsi.newMessage("receiverESP32_toma");
     oocsi.addInt("potentiometer_1", potInterval);
     oocsi.sendMessage();
@@ -125,9 +135,16 @@ void loop() {
   delay(500);
 }
 
+/*
+The handler method for incoming OOCSI messages
+*/
 void processOOCSI() {
-  // Processing incoming data
+  // Gets the value of the receiver's toggle switch
   int ivalue = oocsi.getInt("toggle_Switch_2", -1);
+  Serial.print("received switch state is: ");
+  Serial.println(ivalue);
+
+  // Adjusting the LED for bi-directional communication
   // if (ivalue == 1) {
   //   digitalWrite (0, LOW);
   //   Serial.println("Led is LOW");
@@ -136,11 +153,7 @@ void processOOCSI() {
   //   Serial.println("Led is HIGH");
   // }
 
-  
-
-  Serial.print("received switch state is: ");
-  Serial.println(ivalue);
-
+  // For bi-directional communication - pot value of receiver (when it works like a sender)
   // int potentiometerValue = oocsi.getInt("potentiometer_2", -1);
   // lastSongFetched = potentiometerValue;
   // Serial.print("Potentiometer value received:");
