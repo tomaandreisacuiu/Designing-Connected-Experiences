@@ -1,44 +1,13 @@
 #include "WiFi.h"
 #include "OOCSI.h"
-//#include "Audio.h"
 #include "FS.h"
 #include "SD.h"
 #include "SPI.h"
+// Audio libraries that were tried during development 
+//#include "Audio.h"
 //#include <AudioGeneratorMP3.h>
 //#include <AudioFileSourceSD.h>
 //#include <AudioOutputI2S.h>
-
-// Button Pin
-
-// Network variables
-const char* ssid = "Parapet_Cafe";
-const char* password = "bananaMiau206";
-
-OOCSI oocsi = OOCSI();
-
-//Toggle switch variables
-const int toggleSwitchPin = 6;
-int lastSwitchState = -1;   
-int switchState = 1;
-
-// Send button variables
-const int buttonPin = 2; // GPIO pin for the button
-bool lastButtonState = HIGH; // Initial state for input pullup
-unsigned long lastDebounceTime = 0;
-unsigned long debounceDelay = 50; // the debounce time in milliseconds
-
-//Potentiometer variables
-int potPin = 6;
-int lastAnalogValue = -1;
-int lastPotInterval = -1;
-
-//Audio variables
-// AudioGeneratorMP3 *mp3 = nullptr; // Initialize mp3 pointer to nullptr
-// AudioFileSourceSD *file = nullptr; // Initialize file pointer to nullptr
-// AudioOutputI2S *output = nullptr; // Initialize output pointer to nullptr
-
-// Check variable that the last sent song has been played
-int lastSongFetched = -1;
 
 // LED pin
 const int ledPin = 0;
@@ -46,13 +15,43 @@ const int ledPin = 0;
 // Speaker Pin
 const int dacPin = 17;
 
+// Network constants
+const char* ssid = "Parapet_Cafe";
+const char* password = "bananaMiau206";
+
+OOCSI oocsi = OOCSI();
+
+//Toggle switch variables and constants
+const int toggleSwitchPin = 6; // toggle switch pin
+int lastSwitchState = -1; 
+int switchState = 1;
+
+/*"Send" button constants and variables (for bi-directional communication, 
+not implemented in hardware)
+*/
+const int buttonPin = 2; 
+bool lastButtonState = HIGH; 
+unsigned long lastDebounceTime = 0;
+unsigned long debounceDelay = 50; 
+
+//Potentiometer variables and constants
+const int potPin = 6;
+int lastAnalogValue = -1;
+int lastPotInterval = -1;
+
+// variable that is used to check if the last sent song has been played
+int lastSongFetched = -1;
+
+// Audio variables
+// AudioGeneratorMP3 *mp3 = nullptr; // Initialize mp3 pointer to nullptr
+// AudioFileSourceSD *file = nullptr; // Initialize file pointer to nullptr
+// AudioOutputI2S *output = nullptr; // Initialize output pointer to nullptr
 
 void setup() {
   Serial.begin(115200); 
   pinMode(14, INPUT_PULLUP);
   
-  // Connecting to the OOCSI network
-
+  // BEGIN WiFi Connection
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
@@ -60,18 +59,26 @@ void setup() {
   }
 
   Serial.println("Connected to WiFi");
+  // END - WiFI Connection setup done (if successful, otherwise keeps trying)
 
+  // BEGIN OOCSI Connection
   oocsi.connect("receiverESP32_toma", "oocsi.id.tue.nl", ssid, password, processOOCSI);
-
   Serial.println("Connected to OOCSI");
+  // END - Connected to OOCSI successfully
 
+  /*
+  Sets up: two pins as pull-up input(button and toggle switch),
+  and two pins as output (LED and DAC)
+  */
   pinMode(buttonPin, INPUT_PULLUP);
   pinMode(toggleSwitchPin, INPUT_PULLUP);
   pinMode(ledPin, OUTPUT);
-  pinMode(17, OUTPUT);
-  // Set LED to off at start.
+  pinMode(dacPin, OUTPUT);
+
+  // LED to be turned off initially
   digitalWrite(ledPin, LOW);
-  // SD card mounting
+
+  // Mounting of SD Card (tried during development)
   /*SPI.begin(12, 13, 11, 10);
   if (!SD.begin(10, SPI)) {
     Serial.println("Card Mount Failed");
@@ -93,15 +100,23 @@ void setup() {
 void loop() {
   oocsi.check();
 
-  // Send availability for the receiver's LED
+  // The state of the toggle switch is updated here
   switchState = digitalRead(toggleSwitchPin);
-  //Serial.println(switchState);
+  
+  // If the switch state has changed, the program handles it as follows:
   if (switchState != lastSwitchState) {
-   
+    /*
+    Sends a message to the sender with this new state which describes
+    if the receiver wants to play the songs transmitted.
+    */ 
     oocsi.newMessage("senderESP32_toma"); 
     oocsi.addInt("toggle_Switch_2", switchState);
     oocsi.sendMessage();
 
+    /*
+    If the receiver wants to play a song and there is one available already sent
+    (the led is high), play the song that was last received.
+    */ 
     if(lastSwitchState == 1 && switchState == 0 && digitalRead(ledPin)== HIGH)
     {
       playSong(lastSongFetched);
@@ -109,69 +124,71 @@ void loop() {
     }
     
     lastSwitchState = switchState;
-
-    // Serial.print("Sent switch state: ");
-    // Serial.println(switchState);
   }
   
   delay(100);
 }
 
+/*
+The handler method for incoming OOCSI messages
+*/
 void processOOCSI() {
-  // Processing incoming data
-  int ivalue = oocsi.getInt("toggle_Switch_1", -1);
+  /*
+  For bi-directional communication, not implemented in hardware.
+  The sender also would have a toggle switch, and would have the same 
+  receiver functionalities as the actual receiver.
+  */ 
+  // int ivalue = oocsi.getInt("toggle_Switch_1", -1);
+  // Serial.print("received switch state is: ");
+  // Serial.println(ivalue);
 
-  // if (ivalue == 1) {
-  //   digitalWrite (0, LOW);
-  //   Serial.println("Led is LOW");
-  // } else if(ivalue == 0){
-  //   digitalWrite (0, HIGH); 
-  //   Serial.println("Led is HIGH");
-  // }
-
-  Serial.print("received switch state is: ");
-  Serial.println(ivalue);
-
+  // Gets the value of the potentiometer from the sender and updates the last song in queue
   int potentiometerValue = oocsi.getInt("potentiometer_1", -1);
   lastSongFetched = potentiometerValue;
+
   Serial.print("Switch state: ");
   Serial.println(switchState);
   Serial.print("Potentiometer value received:");
   Serial.println(potentiometerValue);
 
+  /*
+  If the toggle switch is not turned, the led turns on, and it it's turned, then play the song directly, 
+  without lighting up the led and wait for the user to switch the toggle switch.
+  */ 
   if (switchState && potentiometerValue != -1) {
     digitalWrite (ledPin, HIGH);
     Serial.println("Led is ON");
-  } else if(switchState == 0)
-  {
+  } else if(switchState == 0) {
     playSong(lastSongFetched);
     lastSongFetched = -1;
   } else {
-   digitalWrite (ledPin, LOW); 
-   Serial.println("Led is OFF");
+    digitalWrite (ledPin, LOW); 
+    Serial.println("Led is OFF");
   }
+
 }
 
 void playSong(int song)
-{
-  // int buzzPin = 8; // Buzzer pin
-  // int buzzDuration = 200; // Duration of each buzz in milliseconds
-  // int pauseBetweenBuzzes = 200; // Pause between buzzes in milliseconds
-  
+{  
   Serial.println("Buzzing");
+
   for (int j = 0; j < song; ++j) {
-    // Each iteration of this loop is one "play" of the tone
+    // Buzzes as many times as the value of songs.
     long startTime = millis();
-    while (millis() - startTime < 2000) { // Play tone for approximately 2 seconds
-      // Generate a 1kHz tone
+
+    // Plays a buzz for 2 seconds
+    while (millis() - startTime < 2000) { 
+      // This is a tone of 1kHz 
       for (int i = 0; i < 100; ++i) {
-        dacWrite(dacPin, i % 2 ? 0 : 255); // Square wave
-        delayMicroseconds(500); // Approximately 1kHz
+        dacWrite(dacPin, i % 2 ? 0 : 255);
+        delayMicroseconds(500);
       }
     }
-    // Optional: Pause between repeats
-    delay(500); // Wait for 0.5 seconds before the next play
+
+    // Pause for half a second between buzzes
+    delay(500); 
   }
 
+  // "Song" was listened, so led is turning off
   digitalWrite(ledPin, LOW);
 }
