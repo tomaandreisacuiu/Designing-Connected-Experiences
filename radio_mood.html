@@ -1,0 +1,222 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Radio Mood</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #333;
+        }
+        .top-nav {
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            background-color: black; 
+            color: #ff0;
+            padding: 10px 20px;
+        }
+        .top-nav > div {
+            font-size: 24px; 
+            font-weight: bold;
+        }
+        #devices {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .device-box {
+            width: 40%;
+            background-color: black;
+            color: #fff; 
+            padding: 20px;
+            margin: 10px 0;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        .play-btn {
+            background-color: #ff0; 
+            border: none;
+            color: #333;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 20px 2px; 
+            cursor: pointer;
+        }
+        .song-title {
+            margin-top: 30px; 
+            font-style: italic;
+        }
+        #nowPlaying {
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            color: white
+        }
+
+        .headers {
+            color: white;
+        }
+
+        .pair-btn {
+            background-color: #ff0; 
+            border: none;
+            color: #333;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 20px 2px; 
+            cursor: pointer;
+        }
+
+    </style>
+
+    <script src="https://oocsi.id.tue.nl/assets/js/oocsi-web.min.js" type="text/javascript"></script>
+</head>
+<body>
+
+    <div class="top-nav">
+        <div>Radio Mood</div>
+    </div>
+
+    <h2 id="nowPlaying">No song is currently playing.</h2>
+
+    <div id="devices">
+        <h3 class="headers">PLAY A SONG</h3>
+        <h4 class="headers">Automatically sends to Concept 3 when pairing is active.</h4>
+
+        <button class="pair-btn" id="pairButton" onclick="togglePair()">Pair</button>
+        
+        <div class="device-box">
+            <button class="play-btn" onclick="togglePlay(this, 'Song 1', 1)">Play</button>
+            <div class="song-title">Song 1</div>
+        </div>
+        <div class="device-box">
+            <button class="play-btn" onclick="togglePlay(this, 'Song 2', 2)">Play</button>
+            <div class="song-title">Song 2</div>
+        </div>
+        <div class="device-box">
+            <button class="play-btn" onclick="togglePlay(this, 'Song 3', 3)">Play</button>
+            <div class="song-title">Song 3</div>
+        </div>
+    
+        <h3 class="headers">SEE AND PLAY A SONG FROM A DEVICE</h3>
+        <h4 class="headers">Also sends to Concept 3 if in pairing mode</h4>
+        <p class="headers">Availability and songs are fetched continously</p>
+    
+        <div class="device-box">
+            Radio 1 - Sender
+            <div>Available</div> 
+        </div>
+        <div class="device-box">
+            Radio 2
+            <button class="play-btn" onclick="togglePlay(this, 'Song 2', songRadio2Fetched)">Play</button>
+            <div class="song-title" id="radio2-song-title">No song was fetched yet</div>
+            <p id="radio2-status">Availability was not fetched yet</p> 
+        </div>
+        <div class="device-box">
+            Radio 3
+            <button class="play-btn" onclick="togglePlay(this, 'Song 3', songRadio3Fetched)">Play</button>
+            <div class="song-title" id="radio3-song-title">No song was fetched yet</div>
+            <div id="radio3-status">Availability was not fetched yet</div> 
+        </div>
+        
+    </div>
+    
+    <audio id="Song 1" src="./001.wav" preload="auto"></audio>
+    <audio id="Song 2" src="./002.wav" preload="auto"></audio>
+    <audio id="Song 3" src="./003.wav" preload="auto"></audio>
+
+    <script>
+        let isPairing = 0
+        let songRadio2Fetched = -1
+        let songRadio3Fetched = -1
+
+        function togglePlay(btn, songTitle, songNo) {
+            if (songNo >= 0) {
+                const audioElement = document.getElementById(songTitle); 
+                const isPlaying = btn.innerHTML === 'Pause';
+                const nowPlayingElement = document.getElementById('nowPlaying');
+            
+                document.querySelectorAll('audio').forEach((audio) => {
+                    if (audio !== audioElement) {
+                        audio.pause();
+                        audio.currentTime = 0;
+                    }
+                });
+            
+                document.querySelectorAll('.play-btn').forEach(playBtn => {
+                    if (playBtn !== btn) playBtn.innerHTML = 'Play';
+                });
+            
+                if (!isPlaying) {
+                    audioElement.play().then(() => {
+                        btn.innerHTML = 'Pause'; 
+                        nowPlayingElement.textContent = songTitle + ' is playing now.';
+                    }).catch(error => {
+                        console.error("Playback failed:", error);
+                        nowPlayingElement.textContent = "Playback failed. Check the console for details.";
+                    });
+                } else {
+                    audioElement.pause();
+                    btn.innerHTML = 'Play';
+                    nowPlayingElement.textContent = "No song is currently playing.";
+                }
+            
+                if (isPairing == 1) {
+                    console.log("sends to device")
+                    OOCSI.send("device3Team8DBSU", {"songNumber": songNo});
+                }
+            } else {
+                console.log("tried to play a song with was not fetched")
+            }
+        }
+        
+        function togglePair() {
+            const pairButton = document.getElementById('pairButton');
+        
+            const isPaired = pairButton.textContent === 'Unpair';
+            if (!isPaired) {
+                console.log(isPaired)
+                pairButton.textContent = 'Unpair';
+                isPairing = 1
+                console.log(isPairing)
+                OOCSI.send('device3Team8DBSU', { pairState: 1 }); 
+            } else {
+                console.log(isPaired)
+                pairButton.textContent = 'Pair';
+                isPairing = 0
+                console.log(isPairing)
+                OOCSI.send('device3Team8DBSU', { pairState: 0 }); 
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            OOCSI.logger(function(response) {
+                console.log(response)
+            });
+
+            OOCSI.error(function() {
+                console.error("Error:")
+            });
+
+            OOCSI.connect('wss://oocsi.id.tue.nl/ws', 'wepAppTeam8DBSU');
+
+            OOCSI.subscribe("receiverESP32_toma", (event) => {
+                document.querySelector("#radio2-status").innerText = event.data;
+                console.log("message was received")
+			})
+            
+        });
+
+    </script>
+
+</body>
+</html>
