@@ -7,14 +7,14 @@
         body {
             margin: 0;
             font-family: Arial, sans-serif;
-            background-color: #333;
+            background-color: #EEE3AF;
         }
         .top-nav {
             display: flex;
             justify-content: space-evenly;
             align-items: center;
-            background-color: black; 
-            color: #ff0;
+            background-color: #10040A; 
+            color: #EEE3AF;
             padding: 10px 20px;
         }
         .top-nav > div {
@@ -29,7 +29,7 @@
         }
         .device-box {
             width: 40%;
-            background-color: black;
+            background-color: #10040A;
             color: #fff; 
             padding: 20px;
             margin: 10px 0;
@@ -37,9 +37,9 @@
             box-sizing: border-box;
         }
         .play-btn {
-            background-color: #ff0; 
+            background-color: #24675C; 
             border: none;
-            color: #333;
+            color: black;
             padding: 15px 32px;
             text-align: center;
             text-decoration: none;
@@ -56,17 +56,17 @@
             display: flex;
             justify-content: space-evenly;
             align-items: center;
-            color: white
+            color: #24675C
         }
 
         .headers {
-            color: white;
+            color: #24675C;
         }
 
         .pair-btn {
-            background-color: #ff0; 
+            background-color: #24675C; 
             border: none;
-            color: #333;
+            color: black;
             padding: 15px 32px;
             text-align: center;
             text-decoration: none;
@@ -89,7 +89,7 @@
     <h2 id="nowPlaying">No song is currently playing.</h2>
 
     <div id="devices">
-        <h3 class="headers">PLAY A SONG</h3>
+        
         <h4 class="headers">Automatically sends to Concept 3 when pairing is active.</h4>
 
         <button class="pair-btn" id="pairButton" onclick="togglePair()">Pair</button>
@@ -209,9 +209,32 @@
 
             OOCSI.connect('wss://oocsi.id.tue.nl/ws', 'wepAppTeam8DBSU');
 
-            OOCSI.subscribe("receiverESP32_toma", (event) => {
-                document.querySelector("#radio2-status").innerText = event.data;
-                console.log("message was received")
+            OOCSI.subscribe("wepAppTeam8DBSU", function(event) {
+                if ("toggle_Switch_2" in event.data) {
+                    if (event.data["toggle_Switch_2"] == 1) {
+                        document.getElementById('radio2-status').textContent = "Available"
+                    } else {
+                        document.getElementById('radio2-status').textContent = "Unavailable"
+                    }
+                } 
+
+                if ("toggle_Switch_3" in event.data) {
+                    if (event.data["toggle_Switch_3"] == 1) {
+                        document.getElementById('radio3-status').textContent = "Available"
+                    } else {
+                        document.getElementById('radio3-status').textContent = "Unavailable"
+                    }
+                } 
+
+                if ("songNumber2" in event.data) {
+                    songRadio2Fetched = event.data["songNumber2"]
+                    document.getElementById('radio3-song-title').textContent = "Playing song: " + event.data["songNumber2"]
+                } 
+
+                if ("songNumber3" in event.data) {
+                    songRadio3Fetched = event.data["songNumber3"]
+                    document.getElementById('radio3-song-title').textContent = "Playing song: " + event.data["songNumber3"]
+                } 
 			})
             
         });
